@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import EmployeeCreateModal from "@/components/EmployeeCreateModal";
+import { canCreateEmployee } from "@/utils/permissions";
 
 const Employees = () => {
   const { user } = useAuth();
@@ -66,9 +67,8 @@ const Employees = () => {
     // eslint-disable-next-line
   }, [user?.orgid, user?.clientid, search, showModal]);
 
-  const isHRorAdmin =
-    user?.role?.rolename === "Admin" ||
-    user?.role?.rolename === "HR";
+  // Check if user has permission to create employees (Admin or HR)
+  const hasCreatePermission = user?.roleid ? canCreateEmployee(user.roleid) : false;
 
   return (
     <DashboardLayout>
@@ -81,7 +81,7 @@ const Employees = () => {
               Manage your team members and their information
             </p>
           </div>
-          {isHRorAdmin && (
+          {hasCreatePermission && (
             <Button className="shadow-soft" onClick={() => setShowModal(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
               Add Employee

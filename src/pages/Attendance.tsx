@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Clock, UserCheck, LogIn, LogOut as LogOutIcon } from "lucide-react";
+import { Clock, UserCheck, LogIn, LogOut as LogOutIcon, Edit } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { canEditAttendance } from "@/utils/permissions";
+import AttendanceEditModal from "@/components/AttendanceEditModal";
 import {
   Table,
   TableBody,
@@ -34,6 +36,10 @@ const Attendance = () => {
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
+  
+  // Check if user has permission to edit attendance (Admin or HR)
+  const hasEditPermission = user?.roleid ? canEditAttendance(user.roleid) : false;
 
   // Fetch today's attendance
   const fetchTodayAttendance = async () => {
@@ -321,6 +327,7 @@ const Attendance = () => {
                   <TableHead>Check-out</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Status</TableHead>
+                  {hasEditPermission && <TableHead className="w-[50px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -352,6 +359,17 @@ const Attendance = () => {
                           {record.status || "Unknown"}
                         </Badge>
                       </TableCell>
+                      {hasEditPermission && (
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setEditingRecord(record)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -360,6 +378,18 @@ const Attendance = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Edit Modal */}
+      {editingRecord && hasEditPermission && (
+        <AttendanceEditModal
+          attendanceRecord={editingRecord}
+          onClose={() => setEditingRecord(null)}
+          onSuccess={() => {
+            fetchTodayAttendance();
+            fetchAttendanceHistory();
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 };
