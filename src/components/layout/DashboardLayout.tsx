@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -27,6 +28,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const getUserName = () => {
     return user?.user_metadata?.full_name || "User";
+  };
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    await signOut();
   };
 
   const navigation = [
@@ -86,10 +92,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               variant="outline" 
               className="w-full justify-start" 
               size="sm"
-              onClick={signOut}
+              onClick={handleSignOut}
+              disabled={isSigningOut}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+              {isSigningOut ? "Signing out..." : "Sign Out"}
             </Button>
           </div>
         </div>

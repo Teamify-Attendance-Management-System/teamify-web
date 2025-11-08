@@ -52,23 +52,34 @@ const Auth = () => {
     const password = formData.get("password") as string;
     const name = formData.get("name") as string;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           full_name: name,
         }
       }
     });
 
+    setIsLoading(false);
+
     if (error) {
       toast.error(error.message);
-      setIsLoading(false);
-    } else {
-      toast.success("Account created! Please check your email to verify.");
-      setIsLoading(false);
+      return;
+    }
+
+    // Check if email confirmation is required
+    if (data?.user && !data.session) {
+      toast.success(
+        "Account created! Please check your email to confirm your account.",
+        { duration: 5000 }
+      );
+    } else if (data?.session) {
+      // If email confirmation is disabled, user is logged in immediately
+      toast.success("Account created successfully! Welcome to Teamify.");
+      navigate("/dashboard");
     }
   };
 
