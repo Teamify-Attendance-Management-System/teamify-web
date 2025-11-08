@@ -2,45 +2,129 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Users, UserCheck, UserX, TrendingUp, Clock, Calendar } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
-  const stats = [
-    {
-      title: "Total Employees",
-      value: "248",
-      change: "+12%",
-      icon: Users,
-      trend: "up"
-    },
-    {
-      title: "Present Today",
-      value: "186",
-      change: "75%",
-      icon: UserCheck,
-      trend: "up"
-    },
-    {
-      title: "Absent Today",
-      value: "62",
-      change: "-5%",
-      icon: UserX,
-      trend: "down"
-    },
-    {
-      title: "Avg. Attendance",
-      value: "89.2%",
-      change: "+2.1%",
-      icon: TrendingUp,
-      trend: "up"
-    }
-  ];
+  const { user } = useAuth();
+  const [stats, setStats] = useState([
+    { title: "Total Employees", value: "0", change: "+0%", icon: Users, trend: "up" },
+    { title: "Present Today", value: "0", change: "0%", icon: UserCheck, trend: "up" },
+    { title: "Absent Today", value: "0", change: "0%", icon: UserX, trend: "down" },
+    { title: "Avg. Attendance", value: "0%", change: "+0%", icon: TrendingUp, trend: "up" }
+  ]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentActivity = [
-    { name: "Sarah Johnson", action: "Checked in", time: "2 minutes ago", status: "in" },
-    { name: "Mike Chen", action: "Checked out", time: "15 minutes ago", status: "out" },
-    { name: "Emily Davis", action: "Checked in", time: "32 minutes ago", status: "in" },
-    { name: "James Wilson", action: "Checked in", time: "1 hour ago", status: "in" },
-  ];
+  useEffect(() => {
+    if (!user?.orgid || !user?.clientid) return;
+
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      
+      try {
+        // Get total employees
+        const { count: totalEmployees } = await supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("orgid", user.orgid)
+          .eq("clientid", user.clientid)
+          .eq("isactive", true);
+
+        // Get today's attendance
+        const today = new Date().toISOString().split('T')[0];
+        const { data: todayAttendance } = await supabase
+          .from("attendance")
+          .select("userid, checkintime, checkouttime")
+          .eq("orgid", user.orgid)
+          .eq("clientid", user.clientid)
+          .eq("date", today);
+
+        const presentToday = todayAttendance?.filter(a => a.checkintime).length || 0;
+        const absentToday = (totalEmployees || 0) - presentToday;
+        const attendancePercentage = totalEmployees ? ((presentToday / totalEmployees) * 100).toFixed(1) : "0";
+
+        // Get recent activity (last 10 check-ins/check-outs)
+        const { data: recentCheckins } = await supabase
+          .from("attendance")
+          .select(`
+            userid,
+            checkintime,
+            checkouttime,
+            createdat,
+            user:users(fullname)
+          `)
+          .eq("orgid", user.orgid)
+          .eq("clientid", user.clientid)
+          .not("checkintime", "is", null)
+          .order("createdat", { ascending: false })
+          .limit(10);
+
+        // Format recent activity
+        const formattedActivity = recentCheckins?.map(record => {
+          const checkinTime = new Date(record.checkintime);
+          const now = new Date();
+          const diffMs = now.getTime() - checkinTime.getTime();
+          const diffMins = Math.floor(diffMs / 60000);
+          
+          let timeAgo = "";
+          if (diffMins < 1) timeAgo = "Just now";
+          else if (diffMins < 60) timeAgo = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+          else {
+            const diffHours = Math.floor(diffMins / 60);
+            timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+          }
+
+          return {
+            name: record.user?.fullname || "Unknown",
+            action: record.checkouttime ? "Checked out" : "Checked in",
+            time: timeAgo,
+            status: record.checkouttime ? "out" : "in"
+          };
+        }) || [];
+
+        setStats([
+          {
+            title: "Total Employees",
+            value: String(totalEmployees || 0),
+            change: "+0%",
+            icon: Users,
+            trend: "up"
+          },
+          {
+            title: "Present Today",
+            value: String(presentToday),
+            change: `${attendancePercentage}%`,
+            icon: UserCheck,
+            trend: "up"
+          },
+          {
+            title: "Absent Today",
+            value: String(absentToday),
+            change: "-0%",
+            icon: UserX,
+            trend: "down"
+          },
+          {
+            title: "Avg. Attendance",
+            value: `${attendancePercentage}%`,
+            change: "+0%",
+            icon: TrendingUp,
+            trend: "up"
+          }
+        ]);
+
+        setRecentActivity(formattedActivity);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user?.orgid, user?.clientid]);
 
   return (
     <DashboardLayout>
@@ -80,7 +164,11 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
+                {loading ? (
+                  <div className="text-center text-muted-foreground py-4">Loading...</div>
+                ) : recentActivity.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-4">No recent activity</div>
+                ) : recentActivity.map((activity, index) => (
                   <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -104,7 +192,7 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </CardContent>
           </Card>
