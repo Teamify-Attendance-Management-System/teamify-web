@@ -75,24 +75,35 @@ const Auth = () => {
 
     // Create user in custom users table
     if (data?.user) {
-      // TODO: In production, you should allow users to select client and organization
-      // For now, we'll use default values (clientid=1, orgid=1)
-      // You need to ensure these exist in your database
-      const defaultClientId = 1;
-      const defaultOrgId = 1;
+      try {
+        // TODO: In production, you should allow users to select client and organization
+        // For now, we'll use default values (clientid=1, orgid=1)
+        const defaultClientId = 1;
+        const defaultOrgId = 1;
 
-      const dbUser = await userService.createUser({
-        email,
-        fullname: name,
-        orgid: defaultOrgId,
-        clientid: defaultClientId,
-        roleid: 3, // Default to Employee role
-      });
+        const dbUser = await userService.createUser({
+          email,
+          fullname: name,
+          orgid: defaultOrgId,
+          clientid: defaultClientId,
+          roleid: 3, // Default to Employee role
+        });
 
-      if (!dbUser) {
-        toast.error("Error creating user profile. Please contact support.");
-        setIsLoading(false);
-        return;
+        if (!dbUser) {
+          console.error("Failed to create user in database");
+          toast.error(
+            "Account created but profile setup failed. Please contact admin.",
+            { duration: 6000 }
+          );
+          // Don't return - let them proceed to login
+        }
+      } catch (error: any) {
+        console.error("Error creating user profile:", error);
+        toast.error(
+          `Profile setup error: ${error.message || 'Please ensure default client (id=1) and organization (id=1) exist'}`,
+          { duration: 8000 }
+        );
+        // Don't return - let them proceed to login
       }
     }
 
