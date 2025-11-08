@@ -154,7 +154,7 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
-          )))}
+          ))}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
