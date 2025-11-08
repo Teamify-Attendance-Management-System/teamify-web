@@ -139,7 +139,9 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
+          {loading ? (
+            <div className="col-span-4 text-center py-8 text-muted-foreground">Loading dashboard...</div>
+          ) : stats.map((stat, index) => (
             <Card key={index} className="shadow-soft hover:shadow-medium transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
@@ -152,7 +154,7 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
-          ))}
+          )))}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">

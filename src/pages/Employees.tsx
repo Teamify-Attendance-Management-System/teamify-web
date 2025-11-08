@@ -26,27 +26,45 @@ const Employees = () => {
 
   // Fetch employees (with joins)
   const fetchEmployees = async () => {
+    if (!user?.orgid || !user?.clientid) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    let query = supabase
-      .from("users")
-      .select(
-        `userid, fullname, email, status, department:departments(departmentname), role:roles(rolename)`
-      )
-      .eq("orgid", user.orgid)
-      .eq("clientid", user.clientid);
+    try {
+      let query = supabase
+        .from("users")
+        .select(
+          `userid, fullname, email, status, department:departments(departmentname), role:roles(rolename)`
+        )
+        .eq("orgid", user.orgid)
+        .eq("clientid", user.clientid)
+        .eq("isactive", true);
 
-    if (search)
-      query = query.ilike("fullname", `%${search}%`);
+      if (search)
+        query = query.ilike("fullname", `%${search}%`);
 
-    const { data } = await query;
-    setEmployees(data ?? []);
-    setLoading(false);
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error("Error fetching employees:", error);
+        setEmployees([]);
+      } else {
+        setEmployees(data ?? []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchEmployees();
     // eslint-disable-next-line
-  }, [user.orgid, user.clientid, search, showModal]); // refetch after create
+  }, [user?.orgid, user?.clientid, search, showModal]);
 
   const isHRorAdmin =
     user?.role?.rolename === "Admin" ||
@@ -149,7 +167,7 @@ const Employees = () => {
           </Table>
         </Card>
       </div>
-      {showModal && (
+      {showModal && user?.orgid && user?.clientid && (
         <EmployeeCreateModal onClose={() => setShowModal(false)} orgid={user.orgid} clientid={user.clientid} />
       )}
     </DashboardLayout>
