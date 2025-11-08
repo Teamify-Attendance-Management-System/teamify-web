@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="20" fill="#6366f1"/>
+  <g fill="white">
+    <!-- T letter -->
+    <rect x="20" y="25" width="20" height="6" rx="2"/>
+    <rect x="27" y="25" width="6" height="50" rx="2"/>
+    
+    <!-- Team icon (simplified people) -->
+    <circle cx="60" cy="35" r="6"/>
+    <circle cx="75" cy="35" r="6"/>
+    <path d="M60 44 C55 44 52 47 52 52 L52 60 C52 62 53 63 55 63 L65 63 C67 63 68 62 68 60 L68 52 C68 47 65 44 60 44Z"/>
+    <path d="M75 44 C70 44 67 47 67 52 L67 60 C67 62 68 63 70 63 L80 63 C82 63 83 62 83 60 L83 52 C83 47 80 44 75 44Z"/>
+  </g>
+</svg>

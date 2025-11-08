@@ -91,9 +91,12 @@ const Auth = () => {
 
         <Card className="shadow-large border-border/50">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold text-center bg-gradient-primary bg-clip-text text-transparent">
-              AttendHub
-            </CardTitle>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <img src="/teamify-logo.svg" alt="Teamify" className="w-10 h-10 rounded-lg" />
+              <CardTitle className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Teamify
+              </CardTitle>
+            </div>
             <CardDescription className="text-center">
               Sign in to your account or create a new one
             </CardDescription>

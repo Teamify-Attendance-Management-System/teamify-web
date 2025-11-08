@@ -88,7 +88,7 @@ const Index = () => {
           <div className="max-w-4xl mx-auto bg-gradient-card rounded-3xl p-12 shadow-large border border-border/50 text-center">
             <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Join hundreds of businesses already using AttendHub
+              Join hundreds of businesses already using Teamify
             </p>
             <Button size="lg" className="text-lg px-8 shadow-glow">
               <Link to="/auth">Start Free Trial</Link>
