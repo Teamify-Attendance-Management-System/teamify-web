@@ -192,7 +192,7 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
                     </div>
                   </div>
-                )))}
+                ))}
               </div>
             </CardContent>
           </Card>
