@@ -18,9 +18,10 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
-  const { user, supabaseUser, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
+  // All values now come from the user object (from Supabase with joins)
   const getUserInitials = () => {
     if (user?.fullname) {
       const names = user.fullname.split(" ");
@@ -29,31 +30,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       }
       return user.fullname.substring(0, 2).toUpperCase();
     }
-    if (supabaseUser?.email) {
-      return supabaseUser.email.substring(0, 2).toUpperCase();
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
     }
     return "U";
   };
 
-  const getUserName = () => {
-    return user?.fullname || supabaseUser?.email || "User";
-  };
+  const getUserName = () =>
+    user?.fullname || user?.email || "User";
 
-  const getUserRole = () => {
-    return user?.role?.rolename || "Employee";
-  };
+  const getUserRole = () =>
+    user?.role?.rolename || "Employee";
 
-  const getUserDepartment = () => {
-    return user?.department?.departmentname || null;
-  };
+  const getUserDepartment = () =>
+    user?.department?.departmentname || null;
 
-  const getUserOrganization = () => {
-    return user?.organization?.orgname || null;
-  };
+  const getUserOrganization = () =>
+    user?.organization?.orgname || null;
 
-  const getUserClient = () => {
-    return user?.client?.clientname || null;
-  };
+  const getUserClient = () =>
+    user?.client?.clientname || null;
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -113,6 +109,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <p className="text-xs text-muted-foreground truncate">{getUserRole()}</p>
                 {getUserDepartment() && (
                   <p className="text-xs text-muted-foreground truncate">{getUserDepartment()}</p>
+                )}
+                {getUserOrganization() && (
+                  <p className="text-xs text-muted-foreground truncate">{getUserOrganization()}</p>
+                )}
+                {getUserClient() && (
+                  <p className="text-xs text-muted-foreground truncate">{getUserClient()}</p>
                 )}
               </div>
             </div>

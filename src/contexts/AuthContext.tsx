@@ -37,27 +37,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      
-      if (session?.user?.email) {
-        try {
-          // Fetch user details from custom users table
-          const userData = await userService.getUserByEmail(session.user.email);
-          setUser(userData);
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          // If we can't fetch user data, still allow them to be logged in
-          // but without full profile data
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setSupabaseUser(session?.user ?? null);
+        
+        if (session?.user?.email) {
+          try {
+            // Fetch user details from custom users table with timeout
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), 5000)
+            );
+            
+            const userData = await Promise.race([
+              userService.getUserByEmail(session.user.email),
+              timeoutPromise
+            ]);
+            
+            setUser(userData as any);
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+            // If we can't fetch user data, still allow them to be logged in
+            // but without full profile data
+            setUser(null);
+          }
+        } else {
           setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("Error getting session:", error);
+        setSession(null);
+        setSupabaseUser(null);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const {
@@ -68,9 +86,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user?.email) {
         try {
-          // Fetch user details from custom users table
-          const userData = await userService.getUserByEmail(session.user.email);
-          setUser(userData);
+          // Fetch user details from custom users table with timeout
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+          );
+          
+          const userData = await Promise.race([
+            userService.getUserByEmail(session.user.email),
+            timeoutPromise
+          ]);
+          
+          setUser(userData as any);
         } catch (error) {
           console.error("Error fetching user data:", error);
           setUser(null);
@@ -78,8 +104,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setUser(null);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

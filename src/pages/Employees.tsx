@@ -12,15 +12,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import EmployeeCreateModal from "@/components/EmployeeCreateModal";
 
 const Employees = () => {
-  const employees = [
-    { id: 1, name: "Sarah Johnson", email: "sarah@company.com", department: "Engineering", role: "Developer", status: "active" },
-    { id: 2, name: "Mike Chen", email: "mike@company.com", department: "Design", role: "Designer", status: "active" },
-    { id: 3, name: "Emily Davis", email: "emily@company.com", department: "Marketing", role: "Manager", status: "active" },
-    { id: 4, name: "James Wilson", email: "james@company.com", department: "Sales", role: "Sales Rep", status: "active" },
-    { id: 5, name: "Lisa Anderson", email: "lisa@company.com", department: "HR", role: "HR Manager", status: "inactive" },
-  ];
+  const { user } = useAuth();
+  const [employees, setEmployees] = useState([]);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch employees (with joins)
+  const fetchEmployees = async () => {
+    setLoading(true);
+    let query = supabase
+      .from("users")
+      .select(
+        `userid, fullname, email, status, department:departments(departmentname), role:roles(rolename)`
+      )
+      .eq("orgid", user.orgid)
+      .eq("clientid", user.clientid);
+
+    if (search)
+      query = query.ilike("fullname", `%${search}%`);
+
+    const { data } = await query;
+    setEmployees(data ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+    // eslint-disable-next-line
+  }, [user.orgid, user.clientid, search, showModal]); // refetch after create
+
+  const isHRorAdmin =
+    user?.role?.rolename === "Admin" ||
+    user?.role?.rolename === "HR";
 
   return (
     <DashboardLayout>
@@ -33,10 +63,12 @@ const Employees = () => {
               Manage your team members and their information
             </p>
           </div>
-          <Button className="shadow-soft">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Employee
-          </Button>
+          {isHRorAdmin && (
+            <Button className="shadow-soft" onClick={() => setShowModal(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Employee
+            </Button>
+          )}
         </div>
 
         {/* Search and Filter */}
@@ -47,9 +79,11 @@ const Employees = () => {
               <Input
                 placeholder="Search employees..."
                 className="pl-10"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <Button variant="outline">Filter</Button>
+            {/* You may enhance with status/department filter */}
           </div>
         </Card>
 
@@ -67,37 +101,57 @@ const Employees = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">
-                          {employee.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <span className="font-medium">{employee.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{employee.email}</TableCell>
-                  <TableCell>{employee.department}</TableCell>
-                  <TableCell>{employee.role}</TableCell>
-                  <TableCell>
-                    <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
-                      {employee.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : employees.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    No employees found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                employees.map((employee) => (
+                  <TableRow key={employee.userid}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">
+                            {employee.fullname
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </span>
+                        </div>
+                        <span className="font-medium">{employee.fullname}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{employee.email}</TableCell>
+                    <TableCell>{employee.department?.departmentname || "-"}</TableCell>
+                    <TableCell>{employee.role?.rolename || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={employee.status === 'Active' ? 'default' : 'secondary'}>
+                        {employee.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </Card>
       </div>
+      {showModal && (
+        <EmployeeCreateModal onClose={() => setShowModal(false)} orgid={user.orgid} clientid={user.clientid} />
+      )}
     </DashboardLayout>
   );
 };
