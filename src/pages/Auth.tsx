@@ -15,14 +15,14 @@ import { orgClientService } from "@/services/orgClientService";
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { supabaseUser } = useAuth();
 
   useEffect(() => {
     // Redirect to dashboard if already logged in
-    if (user) {
+    if (supabaseUser) {
       navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [supabaseUser, navigate]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,6 +42,8 @@ const Auth = () => {
       setIsLoading(false);
     } else {
       toast.success("Welcome back!");
+      // Redirect will happen via useEffect when supabaseUser updates
+      // Don't set isLoading to false here, let the redirect happen
     }
   };
 
