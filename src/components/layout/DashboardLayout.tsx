@@ -18,16 +18,41 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, supabaseUser, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const getUserInitials = () => {
-    if (!user?.email) return "U";
-    return user.email.substring(0, 2).toUpperCase();
+    if (user?.fullname) {
+      const names = user.fullname.split(" ");
+      if (names.length >= 2) {
+        return (names[0][0] + names[1][0]).toUpperCase();
+      }
+      return user.fullname.substring(0, 2).toUpperCase();
+    }
+    if (supabaseUser?.email) {
+      return supabaseUser.email.substring(0, 2).toUpperCase();
+    }
+    return "U";
   };
 
   const getUserName = () => {
-    return user?.user_metadata?.full_name || "User";
+    return user?.fullname || supabaseUser?.email || "User";
+  };
+
+  const getUserRole = () => {
+    return user?.role?.rolename || "Employee";
+  };
+
+  const getUserDepartment = () => {
+    return user?.department?.departmentname || null;
+  };
+
+  const getUserOrganization = () => {
+    return user?.organization?.orgname || null;
+  };
+
+  const getUserClient = () => {
+    return user?.client?.clientname || null;
   };
 
   const handleSignOut = async () => {
@@ -85,7 +110,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{getUserName()}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <p className="text-xs text-muted-foreground truncate">{getUserRole()}</p>
+                {getUserDepartment() && (
+                  <p className="text-xs text-muted-foreground truncate">{getUserDepartment()}</p>
+                )}
               </div>
             </div>
             <Button 

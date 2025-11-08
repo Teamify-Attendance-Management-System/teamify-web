@@ -1,10 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { UserWithDetails } from "@/types/database";
+import { userService } from "@/services/userService";
 
 interface AuthContextType {
-  user: User | null;
+  user: UserWithDetails | null;
+  supabaseUser: SupabaseUser | null;
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -12,6 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  supabaseUser: null,
   session: null,
   loading: true,
   signOut: async () => {},
@@ -26,24 +30,55 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithDetails | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      setSupabaseUser(session?.user ?? null);
+      
+      if (session?.user?.email) {
+        try {
+          // Fetch user details from custom users table
+          const userData = await userService.getUserByEmail(session.user.email);
+          setUser(userData);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // If we can't fetch user data, still allow them to be logged in
+          // but without full profile data
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      
       setLoading(false);
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      setSupabaseUser(session?.user ?? null);
+      
+      if (session?.user?.email) {
+        try {
+          // Fetch user details from custom users table
+          const userData = await userService.getUserByEmail(session.user.email);
+          setUser(userData);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      
       setLoading(false);
     });
 
@@ -68,6 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const value = {
     user,
+    supabaseUser,
     session,
     loading,
     signOut,

@@ -6,7 +6,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { supabaseUser, loading } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user) {
+  // Check for Supabase auth user instead of custom user
+  if (!supabaseUser) {
     return <Navigate to="/auth" replace />;
   }
 

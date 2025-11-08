@@ -9,6 +9,8 @@ import { ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { userService } from "@/services/userService";
+import { orgClientService } from "@/services/orgClientService";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -63,12 +65,36 @@ const Auth = () => {
       }
     });
 
-    setIsLoading(false);
-
     if (error) {
+      setIsLoading(false);
       toast.error(error.message);
       return;
     }
+
+    // Create user in custom users table
+    if (data?.user) {
+      // TODO: In production, you should allow users to select client and organization
+      // For now, we'll use default values (clientid=1, orgid=1)
+      // You need to ensure these exist in your database
+      const defaultClientId = 1;
+      const defaultOrgId = 1;
+
+      const dbUser = await userService.createUser({
+        email,
+        fullname: name,
+        orgid: defaultOrgId,
+        clientid: defaultClientId,
+        roleid: 3, // Default to Employee role
+      });
+
+      if (!dbUser) {
+        toast.error("Error creating user profile. Please contact support.");
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    setIsLoading(false);
 
     // Check if email confirmation is required
     if (data?.user && !data.session) {
