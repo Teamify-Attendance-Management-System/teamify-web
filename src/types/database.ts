@@ -1,15 +1,4 @@
-// Database Types based on PostgreSQL schema
-
-export interface Role {
-  roleid: number;
-  rolename: string;
-  description: string | null;
-  isactive: boolean;
-  createdat: string;
-  updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-}
+// Database Types based on PostgreSQL schema (updated to UUID users and enum role)
 
 export interface Organization {
   orgid: number;
@@ -18,20 +7,18 @@ export interface Organization {
   contactemail: string | null;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
 export interface Client {
   clientid: number;
   clientname: string;
-  orgid: number;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
   // Relations
-  organization?: Organization;
 }
 
 export interface Department {
@@ -43,11 +30,8 @@ export interface Department {
   isactive: boolean;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-  // Relations
-  organization?: Organization;
-  client?: Client;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
 export interface Branch {
@@ -62,37 +46,28 @@ export interface Branch {
   isactive: boolean;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-  // Relations
-  organization?: Organization;
-  client?: Client;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
+export type UserRole = 'admin' | 'hr' | 'employee';
+
 export interface User {
-  userid: number;
-  orgid: number;
-  clientid: number;
+  userid: string; // uuid (auth.users.id)
+  orgid: number | null;
+  clientid: number | null;
   fullname: string;
   email: string;
-  passwordhash: string;
-  roleid: number;
+  role: UserRole; // enum in DB
   departmentid: number | null;
   branchid: number | null;
-  managerid: number | null;
+  managerid: string | null; // uuid
   status: string;
   isactive: boolean;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-  // Relations
-  role?: Role;
-  organization?: Organization;
-  client?: Client;
-  department?: Department;
-  branch?: Branch;
-  manager?: User;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
 export interface Shift {
@@ -106,18 +81,15 @@ export interface Shift {
   isactive: boolean;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-  // Relations
-  organization?: Organization;
-  client?: Client;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
 export interface Attendance {
   attendanceid: number;
   orgid: number;
   clientid: number;
-  userid: number;
+  userid: string; // uuid
   date: string;
   checkintime: string | null;
   checkouttime: string | null;
@@ -131,13 +103,8 @@ export interface Attendance {
   isactive: boolean;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-  // Relations
-  organization?: Organization;
-  client?: Client;
-  user?: User;
-  shift?: Shift;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
 export interface AttendanceRequest {
@@ -145,37 +112,23 @@ export interface AttendanceRequest {
   orgid: number;
   clientid: number;
   attendanceid: number | null;
-  userid: number | null;
+  userid: string | null; // uuid
   requesttype: string | null;
   reason: string | null;
   status: string | null;
-  approvedby: number | null;
+  approvedby: string | null; // uuid
   isactive: boolean;
   createdat: string;
   updatedat: string;
-  createdby: number | null;
-  updatedby: number | null;
-  // Relations
-  organization?: Organization;
-  client?: Client;
-  attendance?: Attendance;
-  user?: User;
-  approver?: User;
-}
-
-export interface RolePermission {
-  id: number;
-  roleid: number | null;
-  permissionkey: string;
-  isactive: boolean;
-  createdat: string;
+  createdby: string | null; // uuid
+  updatedby: string | null; // uuid
 }
 
 export interface AuditLog {
   logid: number;
   orgid: number;
   clientid: number;
-  userid: number | null;
+  userid: string | null; // uuid
   actiontype: string | null;
   tablename: string | null;
   recordid: number | null;
@@ -187,9 +140,9 @@ export interface AuditLog {
 
 // Type for user with full details (including relations)
 export interface UserWithDetails extends User {
-  role: Role;
-  organization: Organization;
-  client: Client;
-  department: Department | null;
-  branch: Branch | null;
+  // relations used in queries elsewhere
+  organization?: Organization | null;
+  client?: Client | null;
+  department?: Department | null;
+  branch?: Branch | null;
 }

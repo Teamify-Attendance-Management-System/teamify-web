@@ -39,8 +39,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const getUserName = () =>
     user?.fullname || user?.email || "User";
 
-  const getUserRole = () =>
-    user?.role?.rolename || "Employee";
+  const getUserRole = () => {
+    const r = user?.role || "employee";
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  };
 
   const getUserDepartment = () =>
     user?.department?.departmentname || null;

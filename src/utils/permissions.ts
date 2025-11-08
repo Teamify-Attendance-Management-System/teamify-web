@@ -1,13 +1,13 @@
-// Role-based permissions utility
-// Role IDs: 1 = Admin, 2 = HR, 3 = Employee
+// Role-based permissions utility (enum string roles)
+import type { UserRole } from "@/types/database";
 
 export const ROLES = {
-  ADMIN: 1,
-  HR: 2,
-  EMPLOYEE: 3,
+  ADMIN: 'admin',
+  HR: 'hr',
+  EMPLOYEE: 'employee',
 } as const;
 
-export type RoleId = typeof ROLES[keyof typeof ROLES];
+export type RoleName = typeof ROLES[keyof typeof ROLES];
 
 export interface Permission {
   canViewDashboard: boolean;
@@ -23,10 +23,9 @@ export interface Permission {
   canManageOrganization: boolean;
 }
 
-export const getPermissions = (roleid: number): Permission => {
-  switch (roleid) {
+export const getPermissions = (role: UserRole): Permission => {
+  switch (role) {
     case ROLES.ADMIN:
-      // Admin has full access to everything
       return {
         canViewDashboard: true,
         canViewEmployees: true,
@@ -40,9 +39,7 @@ export const getPermissions = (roleid: number): Permission => {
         canManageRoles: true,
         canManageOrganization: true,
       };
-    
     case ROLES.HR:
-      // HR can create employees and edit attendance
       return {
         canViewDashboard: true,
         canViewEmployees: true,
@@ -56,25 +53,8 @@ export const getPermissions = (roleid: number): Permission => {
         canManageRoles: false,
         canManageOrganization: false,
       };
-    
     case ROLES.EMPLOYEE:
-      // Employee has limited access
-      return {
-        canViewDashboard: true,
-        canViewEmployees: true,
-        canCreateEmployee: false,
-        canEditEmployee: false,
-        canDeleteEmployee: false,
-        canViewAttendance: true,
-        canEditAttendance: false,
-        canViewReports: false,
-        canManageSettings: false,
-        canManageRoles: false,
-        canManageOrganization: false,
-      };
-    
     default:
-      // Default to employee permissions
       return {
         canViewDashboard: true,
         canViewEmployees: true,
@@ -92,22 +72,14 @@ export const getPermissions = (roleid: number): Permission => {
 };
 
 // Convenience functions
-export const canCreateEmployee = (roleid: number): boolean => {
-  return roleid === ROLES.ADMIN || roleid === ROLES.HR;
+export const canCreateEmployee = (role: UserRole): boolean => {
+  return role === ROLES.ADMIN || role === ROLES.HR;
 };
 
-export const canEditAttendance = (roleid: number): boolean => {
-  return roleid === ROLES.ADMIN || roleid === ROLES.HR;
+export const canEditAttendance = (role: UserRole): boolean => {
+  return role === ROLES.ADMIN || role === ROLES.HR;
 };
 
-export const isAdmin = (roleid: number): boolean => {
-  return roleid === ROLES.ADMIN;
-};
-
-export const isHR = (roleid: number): boolean => {
-  return roleid === ROLES.HR;
-};
-
-export const isEmployee = (roleid: number): boolean => {
-  return roleid === ROLES.EMPLOYEE;
-};
+export const isAdmin = (role: UserRole): boolean => role === ROLES.ADMIN;
+export const isHR = (role: UserRole): boolean => role === ROLES.HR;
+export const isEmployee = (role: UserRole): boolean => role === ROLES.EMPLOYEE;

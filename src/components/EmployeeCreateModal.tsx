@@ -16,7 +16,7 @@ const EmployeeCreateModal = ({ onClose, orgid, clientid }: EmployeeCreateModalPr
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [roleid, setRoleid] = useState("3");
+  const [role, setRole] = useState<'admin'|'hr'|'employee'>("employee");
   const [loading, setLoading] = useState(false);
 
   const generatePassword = () => {
@@ -32,35 +32,50 @@ const EmployeeCreateModal = ({ onClose, orgid, clientid }: EmployeeCreateModalPr
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!password) {
+      toast.error("Please generate or enter a password");
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      // Step 1: Create auth user (requires admin to manually create in Supabase Auth first)
-      // For now, we only create in users table
-      // TODO: Implement Supabase Edge Function with Service Role to create auth users
+      // Call Edge Function to create user in both auth.users and users table
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase
-        .from("users")
-        .insert([
-          {
-            fullname,
+      if (!session) {
+        throw new Error("You must be logged in to create users");
+      }
+
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
             email,
-            passwordhash: "MANAGED_BY_ADMIN",
+            password,
+            fullname,
+            role,
             orgid,
             clientid,
-            roleid: parseInt(roleid),
-            status: "Active",
-            isactive: true,
-          },
-        ])
-        .select()
-        .single();
+          }),
+        }
+      );
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create user");
+      }
 
       toast.success(
-        `Employee created! Manual step: Create auth user in Supabase Dashboard with email: ${email}`,
-        { duration: 10000 }
+        `Employee created successfully! They can now sign in with email: ${email}`,
+        { duration: 5000 }
       );
       onClose();
     } catch (error: any) {
@@ -102,15 +117,16 @@ const EmployeeCreateModal = ({ onClose, orgid, clientid }: EmployeeCreateModalPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Password *</Label>
             <div className="flex gap-2">
               <Input
                 id="password"
-                placeholder="Auto-generated or manual"
+                placeholder="Click Generate or enter manually"
                 type="text"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 disabled={loading}
+                required
               />
               <Button
                 type="button"
@@ -122,33 +138,33 @@ const EmployeeCreateModal = ({ onClose, orgid, clientid }: EmployeeCreateModalPr
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Note: Auth user must be created manually in Supabase Dashboard
+              User will be created in both Auth and Database automatically
             </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="role">Role *</Label>
-            <Select value={roleid} onValueChange={setRoleid} disabled={loading}>
+            <Select value={role} onValueChange={(v) => setRole(v as any)} disabled={loading}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Admin</SelectItem>
-                <SelectItem value="2">HR</SelectItem>
-                <SelectItem value="3">Employee</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="hr">HR</SelectItem>
+                <SelectItem value="employee">Employee</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="pt-2 space-y-2">
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800">
-              <p className="font-semibold mb-1">⚠️ Manual Auth Setup Required</p>
-              <p>After creating this employee, you must:</p>
-              <ol className="list-decimal ml-4 mt-1 space-y-1">
-                <li>Go to Supabase Dashboard → Authentication → Users</li>
-                <li>Click "Add User" and use the same email</li>
-                <li>Set the password: <span className="font-mono bg-white px-1">{password || "(generate one)"}</span></li>
-              </ol>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md text-xs text-green-800">
+              <p className="font-semibold mb-1">✅ Automated User Creation</p>
+              <p>This will create the employee in:</p>
+              <ul className="list-disc ml-4 mt-1 space-y-1">
+                <li>Supabase Authentication (for login)</li>
+                <li>Users Database (for app data and permissions)</li>
+                <li>Employee can immediately sign in with: <span className="font-mono bg-white px-1">{email || "email@example.com"}</span></li>
+              </ul>
             </div>
           </div>
 

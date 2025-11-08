@@ -37,7 +37,7 @@ const Employees = () => {
       let query = supabase
         .from("users")
         .select(
-          `userid, fullname, email, status, department:departments(departmentname), role:roles(rolename)`
+          `userid, fullname, email, status, role, department:departments(departmentname)`
         )
         .eq("orgid", user.orgid)
         .eq("clientid", user.clientid)
@@ -68,7 +68,7 @@ const Employees = () => {
   }, [user?.orgid, user?.clientid, search, showModal]);
 
   // Check if user has permission to create employees (Admin or HR)
-  const hasCreatePermission = user?.roleid ? canCreateEmployee(user.roleid) : false;
+  const hasCreatePermission = user?.role ? canCreateEmployee(user.role) : false;
 
   return (
     <DashboardLayout>
@@ -149,7 +149,7 @@ const Employees = () => {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{employee.email}</TableCell>
                     <TableCell>{employee.department?.departmentname || "-"}</TableCell>
-                    <TableCell>{employee.role?.rolename || "-"}</TableCell>
+                    <TableCell>{employee.role || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={employee.status === 'Active' ? 'default' : 'secondary'}>
                         {employee.status}

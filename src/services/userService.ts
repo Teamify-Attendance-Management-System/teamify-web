@@ -1,16 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
-import { User, UserWithDetails } from "@/types/database";
+import { User, UserWithDetails, UserRole } from "@/types/database";
 
 export const userService = {
   /**
-   * Get user by email
+   * Get user by email (fallback). Prefer getUserById(auth.uid()).
    */
   async getUserByEmail(email: string, orgid?: number, clientid?: number): Promise<UserWithDetails | null> {
     let query = supabase
       .from("users")
       .select(`
         *,
-        role:roles(*),
         organization:organizations(*),
         client:clients(*),
         department:departments(*),
@@ -19,7 +18,6 @@ export const userService = {
       .eq("email", email)
       .eq("isactive", true);
 
-    // Filter by org and client if provided
     if (orgid) query = query.eq("orgid", orgid);
     if (clientid) query = query.eq("clientid", clientid);
 
@@ -34,14 +32,13 @@ export const userService = {
   },
 
   /**
-   * Get user by ID
+   * Get user by UUID
    */
-  async getUserById(userid: number): Promise<UserWithDetails | null> {
+  async getUserById(userid: string): Promise<UserWithDetails | null> {
     const { data, error } = await supabase
       .from("users")
       .select(`
         *,
-        role:roles(*),
         organization:organizations(*),
         client:clients(*),
         department:departments(*),
@@ -60,31 +57,28 @@ export const userService = {
   },
 
   /**
-   * Create a new user in the users table
-   * This should be called after Supabase Auth signup
+   * Create/upsert a user row (should be done by Edge Function normally)
    */
   async createUser(userData: {
+    userid: string; // auth.users.id
     email: string;
     fullname: string;
     orgid: number;
     clientid: number;
-    roleid?: number;
+    role?: UserRole;
     departmentid?: number;
     branchid?: number;
   }): Promise<User | null> {
-    // Default role is "Employee" (roleid 3)
-    const defaultRoleId = userData.roleid || 3;
-
     const { data, error } = await supabase
       .from("users")
-      .insert([
+      .upsert([
         {
+          userid: userData.userid,
           email: userData.email,
           fullname: userData.fullname,
           orgid: userData.orgid,
           clientid: userData.clientid,
-          passwordhash: "HANDLED_BY_SUPABASE_AUTH",
-          roleid: defaultRoleId,
+          role: userData.role || 'employee',
           departmentid: userData.departmentid || null,
           branchid: userData.branchid || null,
           status: "Active",
@@ -106,7 +100,7 @@ export const userService = {
    * Update user profile
    */
   async updateUser(
-    userid: number,
+    userid: string,
     updates: Partial<User>
   ): Promise<User | null> {
     const { data, error } = await supabase
@@ -135,7 +129,6 @@ export const userService = {
       .from("users")
       .select(`
         *,
-        role:roles(*),
         organization:organizations(*),
         client:clients(*),
         department:departments(*),
@@ -144,7 +137,6 @@ export const userService = {
       .eq("isactive", true)
       .order("fullname", { ascending: true });
 
-    // Filter by org and client if provided
     if (orgid) query = query.eq("orgid", orgid);
     if (clientid) query = query.eq("clientid", clientid);
 
@@ -161,7 +153,7 @@ export const userService = {
   /**
    * Deactivate user (soft delete)
    */
-  async deactivateUser(userid: number): Promise<boolean> {
+  async deactivateUser(userid: string): Promise<boolean> {
     const { error } = await supabase
       .from("users")
       .update({ isactive: false, updatedat: new Date().toISOString() })

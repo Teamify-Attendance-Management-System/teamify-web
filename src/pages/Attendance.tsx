@@ -39,7 +39,7 @@ const Attendance = () => {
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   
   // Check if user has permission to edit attendance (Admin or HR)
-  const hasEditPermission = user?.roleid ? canEditAttendance(user.roleid) : false;
+  const hasEditPermission = user?.role ? canEditAttendance(user.role) : false;
 
   // Fetch today's attendance
   const fetchTodayAttendance = async () => {

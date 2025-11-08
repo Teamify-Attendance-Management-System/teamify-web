@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setSupabaseUser(session?.user ?? null);
         
-        if (session?.user?.email) {
+        if (session?.user?.id) {
           try {
             // Fetch user details from custom users table with timeout
             const timeoutPromise = new Promise((_, reject) => 
@@ -51,15 +51,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             );
             
             const userData = await Promise.race([
-              userService.getUserByEmail(session.user.email),
+              userService.getUserById(session.user.id),
               timeoutPromise
             ]);
             
             setUser(userData as any);
           } catch (error) {
             console.error("Error fetching user data:", error);
-            // If we can't fetch user data, still allow them to be logged in
-            // but without full profile data
             setUser(null);
           }
         } else {
@@ -84,15 +82,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       
-      if (session?.user?.email) {
+      if (session?.user?.id) {
         try {
-          // Fetch user details from custom users table with timeout
           const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Timeout')), 5000)
           );
           
           const userData = await Promise.race([
-            userService.getUserByEmail(session.user.email),
+            userService.getUserById(session.user.id),
             timeoutPromise
           ]);
           
